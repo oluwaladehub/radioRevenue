@@ -1,11 +1,12 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { LoginForm } from '@/components/auth/LoginForm';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const showSignupSuccess = searchParams.get('signup') === 'success';
 
@@ -51,34 +52,36 @@ export default function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <div className="bg-white/70 backdrop-blur-lg py-8 px-4 shadow-xl sm:rounded-xl sm:px-10 border border-slate-200/50">
-            {showSignupSuccess && (
-              <motion.div 
-                className="mb-6 bg-green-50/80 backdrop-blur-sm border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <svg className="h-5 w-5 text-green-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Account created successfully! Please check your email to verify your account.
-              </motion.div>
-            )}
+          {showSignupSuccess && (
+            <motion.div 
+              className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <p className="text-sm text-green-600">
+                Account created successfully! Please sign in to continue.
+              </p>
+            </motion.div>
+          )}
+          
+          <div className="bg-white py-8 px-4 shadow-xl rounded-lg sm:px-10 border border-slate-100">
             <LoginForm />
           </div>
-
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Don't have an account?{' '}
-            <Link 
-              href="/auth/signup" 
-              className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
-            >
-              Sign up for free
-            </Link>
-          </p>
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
