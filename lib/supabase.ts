@@ -23,6 +23,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     schema: 'public'
   },
   realtime: {
-    timeout: 20000 // 20 seconds
+    timeout: 20000
   }
 });

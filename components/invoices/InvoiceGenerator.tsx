@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { jobsAPI, invoicesAPI, clientsAPI } from '@/lib/api';
 import type { Database } from '@/lib/database.types';
+import { useAuth } from '@/context/AuthContext';
 
 type Job = Database['public']['Tables']['jobs']['Row'];
 type Client = Database['public']['Tables']['clients']['Row'];
@@ -14,6 +15,7 @@ interface InvoiceGeneratorProps {
 }
 
 export function InvoiceGenerator({ job, onSuccess, onCancel }: InvoiceGeneratorProps) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [client, setClient] = useState<Client | null>(null);
@@ -26,8 +28,14 @@ export function InvoiceGenerator({ job, onSuccess, onCancel }: InvoiceGeneratorP
   useEffect(() => {
     const fetchClient = async () => {
       try {
+        if (!user) return;
         const clientData = await clientsAPI.getClient(job.client_id);
-        setClient(clientData);
+        // Verify that the client belongs to the current user
+        if (clientData.created_by === user.id) {
+          setClient(clientData);
+        } else {
+          setError('You do not have access to this client');
+        }
       } catch (error) {
         console.error('Error fetching client:', error);
         setError('Failed to load client information');
@@ -35,10 +43,15 @@ export function InvoiceGenerator({ job, onSuccess, onCancel }: InvoiceGeneratorP
     };
 
     fetchClient();
-  }, [job.client_id]);
+  }, [job.client_id, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      setError('You must be logged in to create an invoice');
+      return;
+    }
+    
     setLoading(true);
     setError('');
 
@@ -52,20 +65,18 @@ export function InvoiceGenerator({ job, onSuccess, onCancel }: InvoiceGeneratorP
           invoice_number: invoiceNumber,
           client_id: job.client_id,
           total_amount: parseFloat(formData.amount),
-          due_date: new Date(formData.dueDate).toISOString(),
+          due_date: formData.dueDate,
+          notes: formData.notes,
           status: 'pending',
-          notes: formData.notes || null,
-          created_by: job.created_by,
+          created_by: job.created_by
         },
-        [
-          {
-            job_id: job.id,
-            description: job.title,
-            quantity: 1,
-            rate: parseFloat(formData.amount),
-            amount: parseFloat(formData.amount)
-          }
-        ]
+        [{
+          description: job.title,
+          job_id: job.id,
+          rate: parseFloat(formData.amount),
+          amount: parseFloat(formData.amount),
+          quantity: 1
+        }]
       );
 
       onSuccess();

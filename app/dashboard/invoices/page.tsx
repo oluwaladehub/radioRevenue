@@ -69,32 +69,37 @@ export default function InvoicesPage() {
 
   const loadInvoices = async () => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
+
       let query = supabase
         .from('invoices')
         .select(`
           *,
           client:clients (
-            name,
-            contact_person,
-            email
+            *
           ),
-          invoice_items (
+          invoice_items:invoice_items (
+            *,
             job:jobs (
-              title
+              *
             )
           )
         `)
-        .order('created_at', { ascending: false });
+        .eq('created_by', user.id);  // Only show invoices created by the current user
 
-      // Apply status filter if not 'all'
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter as InvoiceStatus);
+        query = query.eq('status', statusFilter);
       }
 
-      const { data: invoices, error } = await query;
+      const { data, error } = await query;
 
       if (error) throw error;
-      setInvoices(invoices as Invoice[]);
+      setInvoices(data as Invoice[]);
     } catch (error) {
       console.error('Error loading invoices:', error);
       setError('Failed to load invoices');
@@ -118,20 +123,27 @@ export default function InvoicesPage() {
     }).format(amount);
   };
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="sm:flex sm:items-center">
+          <div className="sm:flex-auto">
+            <h1 className="text-2xl font-semibold text-gray-900">Invoices</h1>
+            <p className="mt-2 text-sm text-gray-700">
+              A list of all your invoices including their status, amount, and client details.
+            </p>
+          </div>
+          <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+            <button
+              onClick={() => router.push('/dashboard/invoices/new')}
+              className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
+            >
+              Add Invoice
+            </button>
+          </div>
+        </div>
+
+        {/* Filter controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Invoices</h1>
@@ -150,115 +162,112 @@ export default function InvoicesPage() {
               <option value="paid">Paid</option>
               <option value="overdue">Overdue</option>
             </select>
-            <button
-              onClick={() => router.push('/dashboard/invoices/new')}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-            >
-              <span className="mr-2">+</span>
-              New Invoice
-            </button>
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-            {error}
+        {loading ? (
+          <div className="mt-8 flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           </div>
-        )}
-
-        {/* Invoices Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {invoices.map((invoice) => (
-            <div
-              key={invoice.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200"
-            >
-              <div className="p-6 space-y-4">
-                {/* Header */}
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Invoice #{invoice.invoice_number}
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {invoice.invoice_items?.[0]?.job?.title}
-                    </p>
-                  </div>
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
-                      statusColors[invoice.status as InvoiceStatus].bg
-                    } ${statusColors[invoice.status as InvoiceStatus].text}`}
-                  >
-                    <span className="mr-1">{statusColors[invoice.status as InvoiceStatus].icon}</span>
-                    {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                  </span>
-                </div>
-
-                {/* Client Info */}
-                <div className="border-t border-gray-100 pt-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                      {invoice.client?.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{invoice.client?.name}</p>
-                      <p className="text-sm text-gray-500">{invoice.client?.contact_person}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Amount and Due Date */}
-                <div className="border-t border-gray-100 pt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Amount</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {formatCurrency(invoice.total_amount)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Due Date</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {formatDate(invoice.due_date)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="border-t border-gray-100 pt-4 flex justify-end space-x-3">
-                  <button
-                    onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}
-                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                  >
-                    View Details
-                  </button>
-                  <button
-                    onClick={() => downloadInvoicePDF(invoice)}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                  >
-                    Download PDF
-                  </button>
-                </div>
-              </div>
+        ) : error ? (
+          <div className="mt-8 text-center text-red-600">{error}</div>
+        ) : invoices.length === 0 ? (
+          <div className="mt-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {invoices.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📄</div>
-            <h3 className="text-lg font-medium text-gray-900">No invoices found</h3>
+            <h3 className="mt-4 text-lg font-medium text-gray-900">No invoices found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Get started by creating your first invoice
+              {statusFilter !== 'all' 
+                ? 'Try adjusting your filter to see more invoices.'
+                : 'Get started by creating your first invoice.'}
             </p>
             <button
               onClick={() => router.push('/dashboard/invoices/new')}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Create Invoice
+              Create New Invoice
             </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+            {invoices.map((invoice) => (
+              <div
+                key={invoice.id}
+                className="bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200"
+              >
+                <div className="p-6 space-y-4">
+                  {/* Header */}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Invoice #{invoice.invoice_number}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {invoice.invoice_items?.[0]?.job?.title}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
+                        statusColors[invoice.status as InvoiceStatus].bg
+                      } ${statusColors[invoice.status as InvoiceStatus].text}`}
+                    >
+                      <span className="mr-1">{statusColors[invoice.status as InvoiceStatus].icon}</span>
+                      {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                    </span>
+                  </div>
+
+                  {/* Client Info */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
+                        {invoice.client?.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{invoice.client?.name}</p>
+                        <p className="text-sm text-gray-500">{invoice.client?.contact_person}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Amount and Due Date */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Amount</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(invoice.total_amount)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Due Date</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatDate(invoice.due_date)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="border-t border-gray-100 pt-4 flex justify-end space-x-3">
+                    <button
+                      onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}
+                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                    >
+                      View Details
+                    </button>
+                    <button
+                      onClick={() => downloadInvoicePDF(invoice)}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                    >
+                      Download PDF
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

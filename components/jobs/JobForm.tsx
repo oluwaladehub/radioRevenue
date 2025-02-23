@@ -99,12 +99,15 @@ export function JobForm({ initialData, onSubmit, onCancel }: JobFormProps) {
   const searchClients = async (query: string) => {
     try {
       setLoading(true);
-      const clientsList = await clientsAPI.listClients();
-      const filteredClients = clientsList.filter(client => 
+      if (!user) return;
+      
+      const clients = await clientsAPI.listClients(user.id);
+      const filteredClients = clients.filter(client => 
         client.name.toLowerCase().includes(query.toLowerCase())
       );
+      
       setSuggestions(filteredClients);
-      setShowSuggestions(true);
+      setShowSuggestions(filteredClients.length > 0);
     } catch (error) {
       console.error('Error searching clients:', error);
       toast.error('Failed to search clients');

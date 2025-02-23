@@ -41,73 +41,59 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-          {error}
-        </div>
-      )}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <h1 className="text-2xl font-bold mb-4">Login</h1>
+      <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white p-6 rounded shadow-md">
+        {error && (
+          <p className="text-red-500 text-xs italic mb-4">{error}</p>
+        )}
 
-      {success && (
-        <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md">
-          {success}
-        </div>
-      )}
+        {success && (
+          <p className="text-green-500 text-xs italic mb-4">{success}</p>
+        )}
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email
-        </label>
-        <div className="mt-1">
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+            Email
+          </label>
           <input
-            id="email"
-            name="email"
             type="email"
-            required
+            id="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            required
           />
         </div>
-      </div>
-
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Password
-        </label>
-        <div className="mt-1">
+        <div className="mb-6">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+            Password
+          </label>
           <input
-            id="password"
-            name="password"
             type="password"
-            required
+            id="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            required
           />
         </div>
-      </div>
-
-      <div>
-        <button
-          type="submit"
-          disabled={loading}
-          className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-            loading 
-              ? 'bg-blue-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-          }`}
-        >
-          {loading ? 'Signing in...' : 'Sign in'}
-        </button>
-      </div>
-
-      <div className="text-center mt-4">
-        <span className="text-sm text-gray-600">Don't have an account? </span>
-        <Link href="/auth/signup" className="text-sm font-medium text-blue-600 hover:text-blue-500">
-          Sign up
-        </Link>
-      </div>
-    </form>
+        <div className="flex items-center justify-between">
+          <button
+            type="submit"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : 'Login'}
+          </button>
+        </div>
+        <div className="text-center mt-4">
+          <span className="text-sm text-gray-600">Don't have an account? </span>
+          <Link href="/auth/signup" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+            Sign up
+          </Link>
+        </div>
+      </form>
+    </div>
   );
 }

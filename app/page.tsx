@@ -69,7 +69,7 @@ export default function HomePage() {
                 </span>
               </Link>
             </div>
-            <div className="hidden sm:flex sm:items-center sm:space-x-6">
+            <div className="flex items-center space-x-6">
               <Link 
                 href="/auth/login"
                 className="px-5 py-2.5 text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors duration-200"
@@ -80,7 +80,7 @@ export default function HomePage() {
                 href="/auth/signup"
                 className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200"
               >
-                Start Free Trial
+                Sign up
               </Link>
             </div>
           </div>

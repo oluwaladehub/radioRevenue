@@ -33,11 +33,17 @@ export const clientsAPI = {
     return client;
   },
 
-  async listClients() {
-    const { data: clients, error } = await supabase
+  async listClients(userId?: string) {
+    const query = supabase
       .from('clients')
       .select('*')
       .order('name');
+    
+    if (userId) {
+      query.eq('created_by', userId);
+    }
+
+    const { data: clients, error } = await query;
 
     if (error) throw error;
     return clients;
@@ -98,7 +104,7 @@ export const jobsAPI = {
     return job;
   },
 
-  async listJobs(filters?: { status?: string; search?: string }) {
+  async listJobs(filters?: { status?: string; search?: string; userId?: string }) {
     let query = supabase
       .from('jobs')
       .select(`
@@ -115,6 +121,10 @@ export const jobsAPI = {
 
     if (filters?.search) {
       query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+    }
+
+    if (filters?.userId) {
+      query = query.eq('created_by', filters.userId);
     }
 
     const { data: jobs, error } = await query;
