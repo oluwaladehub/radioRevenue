@@ -10,17 +10,21 @@ import type { Database } from '@/lib/database.types';
 type Tables = Database['public']['Tables'];
 type JobUpdate = Tables['jobs']['Update'];
 
-// Import the JobFormData type from the JobForm component to ensure consistency
-type JobFormData = {
+interface JobFormData {
   title: string;
-  client: string;
+  client_id: string;
+  client_name?: string;
+  client_contact_person?: string;
+  client_email?: string;
+  client_phone?: string;
+  client_address?: string;
   duration: string;
-  airTime: string;
-  rate: string;
-  repeatDays: string[];
+  air_time: string;
+  rate: number;
+  schedule_dates: Date[];
   description: string;
-  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
-};
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+}
 
 export default function EditJobPage() {
   const router = useRouter();
@@ -40,11 +44,11 @@ export default function EditJobPage() {
         
         setJob({
           title: jobData.title,
-          client: jobData.client,
+          client_id: jobData.client_id,
           duration: jobData.duration,
-          airTime: jobData.air_time,
-          rate: jobData.rate.toString(),
-          repeatDays: jobData.repeat_days || [],
+          air_time: jobData.air_time,
+          rate: jobData.rate,
+          schedule_dates: [], // You might want to fetch and set actual schedule dates
           description: jobData.description || '',
           status: jobData.status,
         });
@@ -65,11 +69,10 @@ export default function EditJobPage() {
     try {
       const updates: Partial<JobUpdate> = {
         title: data.title,
-        client: data.client,
+        client_id: data.client_id,
         duration: data.duration,
-        air_time: data.airTime,
-        rate: parseFloat(data.rate),
-        repeat_days: data.repeatDays,
+        air_time: data.air_time,
+        rate: data.rate,
         description: data.description,
         status: data.status,
       };
@@ -85,8 +88,8 @@ export default function EditJobPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
         </div>
       </DashboardLayout>
     );
@@ -95,20 +98,15 @@ export default function EditJobPage() {
   if (error) {
     return (
       <DashboardLayout>
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-          {error}
-        </div>
+        <div className="text-center text-red-600">{error}</div>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">Edit Job</h1>
-        </div>
-
+      <div className="max-w-5xl mx-auto py-6">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-6">Edit Job</h1>
         <JobForm
           initialData={job}
           onSubmit={handleSubmit}
